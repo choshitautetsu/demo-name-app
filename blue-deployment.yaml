@@ -1,0 +1,42 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php-web
+  template:
+    metadata:
+      labels:
+        app: php-web
+    spec:
+      containers:
+        - name: php-web
+          image: yourdockerhubid/php-web:latest # 构建并上传后替换这个镜像
+          ports:
+            - containerPort: 80
+          env:
+            - name: MYSQL_HOST
+              value: mysql
+            - name: MYSQL_USER
+              value: root
+            - name: MYSQL_PASSWORD
+              value: example123
+            - name: MYSQL_DATABASE
+              value: namedb
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-web
+spec:
+  selector:
+    app: php-web
+  type: NodePort
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080
