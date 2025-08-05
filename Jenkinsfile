@@ -39,19 +39,19 @@ spec:
         checkout scm
       }
     }
-    // stage('Docker Login') {
-    //   steps {
-    //     container('docker') {
-    //       withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials-id', 
-    //                                         usernameVariable: 'DOCKERHUB_USER', 
-    //                                         passwordVariable: 'DOCKERHUB_PASS')]) {
-    //         sh '''
-    //           echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin
-    //         '''
-    //       }
-    //     }
-    //   }
-    // }
-    // 你后续的构建、推送镜像等stage
+    stage('Docker Login') {
+      steps {
+        container('docker') {
+          withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials-id', 
+                                            usernameVariable: 'DOCKERHUB_USER', 
+                                            passwordVariable: 'DOCKERHUB_PASS')]) {
+            sh '''
+              echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin
+            '''
+          }
+        }
+      }
+    }
+    你后续的构建、推送镜像等stage
   }
 }
