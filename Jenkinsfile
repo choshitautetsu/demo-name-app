@@ -12,10 +12,6 @@ metadata:
   name: example-pod
 spec:
   serviceAccountName: jenkins
-  securityContext:
-    fsGroup: 1000
-    runAsUser: 1000
-    runAsGroup: 1000
   containers:
   - name: kubectl
     image: bitnami/kubectl:1.27.4
@@ -26,6 +22,14 @@ spec:
     securityContext:
       runAsUser: 1000
       runAsGroup: 1000
+  - name: docker
+  image: docker:20.10-dind
+  securityContext:
+    privileged: true
+  command:
+    - dockerd-entrypoint.sh
+    - --host=unix:///var/run/docker.sock
+  tty: true
 """
     }
   }
