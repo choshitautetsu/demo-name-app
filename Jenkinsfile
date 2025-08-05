@@ -33,8 +33,6 @@ spec:
     tty: true
     command:
     - dockerd-entrypoint.sh
-    args:
-    - --host=tcp://0.0.0.0:2375
     - --host=unix:///var/run/docker.sock
 """
     }
