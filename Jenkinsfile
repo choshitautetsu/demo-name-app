@@ -27,7 +27,7 @@ spec:
       runAsUser: 1000
       runAsGroup: 1000
   - name: docker
-    image: docker:24.0.2-dind
+    image: docker:20.10-dind
     securityContext:
       privileged: true
     tty: true
