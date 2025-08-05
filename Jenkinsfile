@@ -23,13 +23,13 @@ spec:
       runAsUser: 1000
       runAsGroup: 1000
   - name: docker
-  image: docker:20.10-dind
-  securityContext:
-    privileged: true
-  command:
-    - dockerd-entrypoint.sh
-    - --host=unix:///var/run/docker.sock
-  tty: true
+    image: docker:20.10-dind
+    securityContext:
+      privileged: true
+    command:
+      - dockerd-entrypoint.sh
+      - --host=unix:///var/run/docker.sock
+    tty: true
 """
     }
   }
