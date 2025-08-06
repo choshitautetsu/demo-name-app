@@ -61,10 +61,13 @@ spec:
       steps {
         container('kubectl') {
           sh "kubectl -n ${KUBE_NAMESPACE} apply -f mysql.yaml"
-          echo "DEPLOY MYSQL DONE!!!"
+          // 等待 MySQL Pod Ready（假设标签是 app=mysql）
+          sh "kubectl -n ${KUBE_NAMESPACE} wait --for=condition=ready pod -l app=mysql --timeout=120s"
+          echo "DEPLOY MYSQL DONE AND POD READY!!!"
         }
       }
     }
+
 
     stage('Init MySQL') {
       when {
