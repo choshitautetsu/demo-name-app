@@ -1,9 +1,11 @@
--- 新增字段（如果表中已存在字段，可先手工确认避免重复执行）
-ALTER TABLE names
-  ADD COLUMN IF NOT EXISTS first_name VARCHAR(255) NOT NULL DEFAULT '',
-  ADD COLUMN IF NOT EXISTS family_name VARCHAR(255) NOT NULL DEFAULT '';
+-- 1. 选择数据库
+USE namedb;
 
--- 将旧字段name拆分并迁移
+-- 2. 添加新字段（确保你还没加过）
+ALTER TABLE names ADD COLUMN first_name VARCHAR(255) NOT NULL DEFAULT '';
+ALTER TABLE names ADD COLUMN family_name VARCHAR(255) NOT NULL DEFAULT '';
+
+-- 3. 拆分 name 为两个字段（如果是第一次执行）
 UPDATE names
 SET first_name = SUBSTRING_INDEX(name, ' ', 1),
     family_name = TRIM(SUBSTRING(name, LENGTH(SUBSTRING_INDEX(name, ' ', 1)) + 1))
