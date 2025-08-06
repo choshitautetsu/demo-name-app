@@ -1,0 +1,42 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-web-green-green
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php-web-green
+  template:
+    metadata:
+      labels:
+        app: php-web-green
+    spec:
+      containers:
+        - name: php-web-green
+          image: iamsicher/nameapp:v2
+          ports:
+            - containerPort: 80
+          env:
+            - name: MYSQL_HOST
+              value: mysql
+            - name: MYSQL_USER
+              value: root
+            - name: MYSQL_PASSWORD
+              value: example123
+            - name: MYSQL_DATABASE
+              value: namedb
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-web-green
+spec:
+  selector:
+    app: php-web-green
+  type: LoadBalancer # 修改为 LoadBalancer
+  ports:
+    - port: 4444 # 集群内部访问端口
+      targetPort: 80 # Pod 监听端口
+      protocol: TCP
