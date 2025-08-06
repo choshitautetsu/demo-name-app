@@ -39,6 +39,16 @@ spec:
 """
     }
   }
+  parameters {
+    choice(name: 'choices', choices: ['deploy-blue', 'deploy-green', 'switch-traffic', 'rollout-blue','delete-all'], description: 'pick one')
+    choice(name: 'tag', choices: ['blue', 'green'], description: 'pick one')
+  }
+
+  environment {
+    IMAGE_NAME = "iamsicher/nameapp"
+    KUBE_NAMESPACE = "name-app"
+  }
+
   stages {
     stage('Checkout') {
       steps {
@@ -46,19 +56,89 @@ spec:
       }
     }
 
-    stage('Docker Login') {
+    stage('Deploy MySQL') {
       steps {
-        container('docker') {
-          withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials-id', 
-                                            usernameVariable: 'DOCKERHUB_USER', 
-                                            passwordVariable: 'DOCKERHUB_PASS')]) {
+        container('mysql-client') {
+          sh "kubectl -n ${KUBE_NAMESPACE} apply -f mysql.yaml"
+        }
+      }
+    }
+
+    stage('Init MySQL') {
+      steps {
+        container('mysql-client') {
+          withCredentials([usernamePassword(credentialsId: 'mysql-credentials-id', usernameVariable: 'MYSQL_USER', passwordVariable: 'MYSQL_PASS')]) {
             sh '''
-              echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin
+              mysql -h mysql.${KUBE_NAMESPACE}.svc.cluster.local -u$MYSQL_USER -p$MYSQL_PASS < init-db.sql
             '''
-            // sh "docker build -t nameapp:v2 ."
-            // sh "docker tag nameapp:v2 iamsicher/nameapp:v2"
-            // sh "docker push iamsicher/nameapp:v2"
-            // echo "Pushed image done"
+          }
+        }
+      }
+    }
+
+    stage('Build') {
+      steps {
+        script {
+          def buildfile = ""
+          if (params.choices == 'deploy-blue') {
+            buildfile = 'blue-Dockerfile'
+          } else if (params.choices == 'deploy-green') {
+            buildfile = 'green-Dockerfile'
+          } else {
+            echo "Skipping Build Stage"
+          }
+
+          if (buildfile) {
+            container('docker') {
+              withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials-id', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
+                sh '''
+                  echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin
+                '''
+                sh "docker build -t ${IMAGE_NAME}:${params.tag} -f ${buildfile} ."
+                sh "docker push ${IMAGE_NAME}:${params.tag}"
+                echo "Pushed image done"
+              }
+            }
+          }
+        }
+      }
+    }
+
+    stage('Migration MySQL') {
+      steps {
+        container('mysql-client') {
+          withCredentials([usernamePassword(credentialsId: 'mysql-credentials-id', usernameVariable: 'MYSQL_USER', passwordVariable: 'MYSQL_PASS')]) {
+            script {
+              if (params.choices == 'deploy-green') {
+                sh '''
+                  mysql -h mysql.${KUBE_NAMESPACE}.svc.cluster.local -u$MYSQL_USER -p$MYSQL_PASS < migration-db.sql
+                '''
+                echo "DEPLOY DONE"
+              } else {
+                echo "Skipping Migration MySQL"
+              }
+            }
+          }
+        }
+      }
+    }
+
+    stage('Deploy') {
+      steps {
+        container('kubectl') {
+          script {
+            def deployfile = ""
+            if (params.choices == 'deploy-blue') {
+              deployfile = 'blue-deployment.yaml'
+            } else if (params.choices == 'deploy-green') {
+              deployfile = 'green-deployment.yaml'
+            } else {
+              echo "Skipping Deploy Stage"
+            }
+            if (deployfile) {
+              sh "kubectl apply -f ${deployfile} -n ${KUBE_NAMESPACE}"
+              echo "DEPLOY DONE"
+            }
           }
         }
       }
@@ -67,20 +147,13 @@ spec:
     stage('Query MySQL') {
       steps {
         container('mysql-client') {
-          withCredentials([usernamePassword(credentialsId: 'mysql-credentials-id',
-                                           usernameVariable: 'MYSQL_USER',
-                                           passwordVariable: 'MYSQL_PASS')]) {
-            // 连接集群内部MySQL服务，假设服务地址是 mysql-service.default.svc.cluster.local
-            // sh '''
-            //     mysql -h mysql.name-app.svc.cluster.local -u$MYSQL_USER -p$MYSQL_PASS -D namedb -e "SELECT * FROM names;"
-            // '''
+          withCredentials([usernamePassword(credentialsId: 'mysql-credentials-id', usernameVariable: 'MYSQL_USER', passwordVariable: 'MYSQL_PASS')]) {
+            sh '''
+              mysql -h mysql.${KUBE_NAMESPACE}.svc.cluster.local -u$MYSQL_USER -p$MYSQL_PASS -D namedb -e "SELECT * FROM names;"
+            '''
           }
         }
       }
     }
-
-    // 你后续的构建、推送镜像等stage
   }
 }
-
-
