@@ -169,11 +169,25 @@ spec:
       }
     }
 
+    stage('delete all') {
+      steps {
+        container('kubectl') {
+          script {
+            if (params.choices == 'delete-all') {
+              sh "kubectl -n ${KUBE_NAMESPACE} delete -f ./"
+              echo "DELETE COMPLETE!!!"
+            } else {
+              echo "SKIPPING DELETE STAGE!!!"
+            }
+          }
+        }
+      }
+    }
 
     /*
     stage('Query MySQL') {
       when {
-        expression { /*  根据需要放入逻辑  * / }
+        expression { /*    * / }
       }
       steps {
         container('mysql-client') {
