@@ -1,0 +1,17 @@
+pipeline {
+    agent { label 'agent' } // 指定使用label为agent的Jenkins节点运行
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm  // 拉取代码仓库内容
+            }
+        }
+
+        stage('Kubectl Get Nodes') {
+            steps {
+                sh 'kubectl get no'  // 执行kubectl命令获取节点信息
+            }
+        }
+    }
+}
