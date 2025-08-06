@@ -40,7 +40,7 @@ kind: Service
 metadata:
   name: mysql
 spec:
-  type: LoadBalancer # 通过云平台的负载均衡器暴露服务
+  # type: LoadBalancer # 通过云平台的负载均衡器暴露服务
   selector:
     app: mysql
   ports:
