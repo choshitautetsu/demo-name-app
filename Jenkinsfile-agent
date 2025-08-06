@@ -1,18 +1,9 @@
 pipeline {
-    agent { label 'agent' } // 指定使用label为agent的Jenkins节点运行
-    options {
-      skipDefaultCheckout()
-    }
+    agent { label 'agent' }
     stages {
-        // stage('Checkout') {
-        //     steps {
-        //         checkout scm  // 拉取代码仓库内容
-        //     }
-        // }
-
-        stage('Kubectl Get Nodes') {
+        stage('Check User') {
             steps {
-                sh 'whoami'  // 执行kubectl命令获取节点信息
+                sh 'whoami'
             }
         }
     }
