@@ -48,9 +48,9 @@ spec:
             sh '''
               echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin
             '''
-            sh "docker build -t nameapp:v1 ."
-            sh "docker tag nameapp:v1 iamsicher/nameapp:v1"
-            sh "docker push iamsicher/nameapp:v1"
+            sh "docker build -t nameapp:v2 ."
+            sh "docker tag nameapp:v2 iamsicher/nameapp:v2"
+            sh "docker push iamsicher/nameapp:v2"
             echo "Pushed image done"
           }
         }
