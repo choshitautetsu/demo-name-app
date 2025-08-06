@@ -12,8 +12,6 @@ spec:
       labels:
         app: mysql
     spec:
-      nodeSelector:
-        mysql-node: "true" # 确保pod调度到指定节点，避免hostPath数据丢失
       containers:
         - name: mysql
           image: mysql:8.0
@@ -25,14 +23,6 @@ spec:
               value: example123
             - name: MYSQL_DATABASE
               value: namedb
-          volumeMounts:
-            - name: mysql-persistent-storage
-              mountPath: /var/lib/mysql
-      volumes:
-        - name: mysql-persistent-storage
-          hostPath:
-            path: /mnt/data/mysql
-            type: DirectoryOrCreate
 
 ---
 apiVersion: v1
