@@ -2,20 +2,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: php-web-green-green
+  name: green-name-app
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: php-web-green
+      app: green-name-app
   template:
     metadata:
       labels:
-        app: php-web-green
+        app: green-name-app
     spec:
       containers:
-        - name: php-web-green
-          image: iamsicher/nameapp:v2
+        - name: green-name-app
+          image: iamsicher/nameapp:green #change image
           ports:
             - containerPort: 80
           env:
@@ -31,10 +31,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: php-web-green
+  name: green-name-app-svc
 spec:
   selector:
-    app: php-web-green
+    app: green-name-app
   type: LoadBalancer # 修改为 LoadBalancer
   ports:
     - port: 4444 # 集群内部访问端口

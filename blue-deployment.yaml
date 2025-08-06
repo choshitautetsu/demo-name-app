@@ -2,20 +2,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: php-web
+  name: blue-name-app
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: php-web
+      app: blue-name-app
   template:
     metadata:
       labels:
-        app: php-web
+        app: blue-name-app
     spec:
       containers:
-        - name: php-web
-          image: iamsicher/nameapp:v1 # 构建并上传后替换这个镜像
+        - name: blue-name-app
+          image: iamsicher/nameapp:blue #change image
           ports:
             - containerPort: 80
           env:
@@ -31,10 +31,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: php-web
+  name: blue-name-app-svc
 spec:
   selector:
-    app: php-web
+    app: blue-name-app
   type: LoadBalancer # 修改为 LoadBalancer
   ports:
     - port: 3333 # 集群内部访问端口

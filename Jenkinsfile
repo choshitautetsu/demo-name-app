@@ -40,15 +40,13 @@ spec:
     }
   }
   parameters {
-    choice(name: 'choices', choices: ['deploy-blue', 'deploy-green', 'switch-traffic', 'rollout-blue','delete-all'], description: 'pick one')
+    choice(name: 'choices', choices: ['deploy-mysql', 'deploy-blue', 'deploy-green', 'switch-traffic', 'rollout-blue', 'delete-all'], description: 'pick one')
     choice(name: 'tag', choices: ['blue', 'green'], description: 'pick one')
   }
-
   environment {
     IMAGE_NAME = "iamsicher/nameapp"
     KUBE_NAMESPACE = "name-app"
   }
-
   stages {
     stage('Checkout') {
       steps {
@@ -57,47 +55,51 @@ spec:
     }
 
     stage('Deploy MySQL') {
+      when {
+        expression { params.choices == 'deploy-mysql' }
+      }
       steps {
-        container('mysql-client') {
+        container('kubectl') {
           sh "kubectl -n ${KUBE_NAMESPACE} apply -f mysql.yaml"
+          echo "DEPLOY MYSQL DONE!!!"
         }
       }
     }
 
     stage('Init MySQL') {
+      when {
+        expression { params.choices == 'deploy-mysql' }
+      }
       steps {
         container('mysql-client') {
           withCredentials([usernamePassword(credentialsId: 'mysql-credentials-id', usernameVariable: 'MYSQL_USER', passwordVariable: 'MYSQL_PASS')]) {
             sh '''
               mysql -h mysql.${KUBE_NAMESPACE}.svc.cluster.local -u$MYSQL_USER -p$MYSQL_PASS < init-db.sql
             '''
+            sh '''
+              mysql -h mysql.${KUBE_NAMESPACE}.svc.cluster.local -u$MYSQL_USER -p$MYSQL_PASS -D namedb -e "SELECT * FROM names;"
+            '''
+            echo "INIT MYSQL DONE!!!"
           }
         }
       }
     }
 
     stage('Build') {
+      when {
+        expression { params.choices == 'deploy-blue' || params.choices == 'deploy-green' }
+      }
       steps {
         script {
-          def buildfile = ""
-          if (params.choices == 'deploy-blue') {
-            buildfile = 'blue-Dockerfile'
-          } else if (params.choices == 'deploy-green') {
-            buildfile = 'green-Dockerfile'
-          } else {
-            echo "Skipping Build Stage"
-          }
-
-          if (buildfile) {
-            container('docker') {
-              withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials-id', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
-                sh '''
-                  echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin
-                '''
-                sh "docker build -t ${IMAGE_NAME}:${params.tag} -f ${buildfile} ."
-                sh "docker push ${IMAGE_NAME}:${params.tag}"
-                echo "Pushed image done"
-              }
+          def buildfile = (params.choices == 'deploy-blue') ? 'blue-Dockerfile' : 'green-Dockerfile'
+          container('docker') {
+            withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials-id', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
+              sh '''
+                echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin
+              '''
+              sh "docker build -t ${IMAGE_NAME}:${params.tag} -f ${buildfile} ."
+              sh "docker push ${IMAGE_NAME}:${params.tag}"
+              echo "PUSHED IMAGE DONE!!!"
             }
           }
         }
@@ -105,46 +107,71 @@ spec:
     }
 
     stage('Migration MySQL') {
+      when {
+        expression { params.choices == 'deploy-green' }
+      }
       steps {
         container('mysql-client') {
           withCredentials([usernamePassword(credentialsId: 'mysql-credentials-id', usernameVariable: 'MYSQL_USER', passwordVariable: 'MYSQL_PASS')]) {
-            script {
-              if (params.choices == 'deploy-green') {
-                sh '''
-                  mysql -h mysql.${KUBE_NAMESPACE}.svc.cluster.local -u$MYSQL_USER -p$MYSQL_PASS < migration-db.sql
-                '''
-                echo "DEPLOY DONE"
-              } else {
-                echo "Skipping Migration MySQL"
-              }
-            }
+            sh '''
+              mysql -h mysql.${KUBE_NAMESPACE}.svc.cluster.local -u$MYSQL_USER -p$MYSQL_PASS < migration-db.sql
+            '''
+            sh '''
+              mysql -h mysql.${KUBE_NAMESPACE}.svc.cluster.local -u$MYSQL_USER -p$MYSQL_PASS -D namedb -e "SELECT * FROM names;"
+            '''
+            echo "MIGRATION MYSQL DONE!!!"
           }
         }
       }
     }
 
     stage('Deploy') {
+      when {
+        expression { params.choices == 'deploy-blue' || params.choices == 'deploy-green' }
+      }
       steps {
         container('kubectl') {
           script {
-            def deployfile = ""
-            if (params.choices == 'deploy-blue') {
-              deployfile = 'blue-deployment.yaml'
-            } else if (params.choices == 'deploy-green') {
-              deployfile = 'green-deployment.yaml'
-            } else {
-              echo "Skipping Deploy Stage"
-            }
-            if (deployfile) {
-              sh "kubectl apply -f ${deployfile} -n ${KUBE_NAMESPACE}"
-              echo "DEPLOY DONE"
-            }
+            def deployfile = (params.choices == 'deploy-blue') ? 'blue-deployment.yaml' : 'green-deployment.yaml'
+            sh "kubectl apply -f ${deployfile} -n ${KUBE_NAMESPACE}"
+            echo "DEPLOY STAGE DONE!!!"
           }
         }
       }
     }
 
+    stage('Switch Traffic') {
+      when {
+        expression { params.choices == 'switch-traffic' }
+      }
+      steps {
+        container('kubectl') {
+          sh "kubectl -n ${KUBE_NAMESPACE} patch svc blue-name-app-svc -p '{\"spec\":{\"selector\":{\"app\":\"green-name-app\"}}}'"
+          sh "kubectl -n ${KUBE_NAMESPACE} get ep"
+          echo "SWITCH TRAFFIC DONE!!!"
+        }
+      }
+    }
+
+    stage('Rollout Blue') {
+      when {
+        expression { params.choices == 'rollout-blue' }
+      }
+      steps {
+        container('kubectl') {
+          sh "kubectl -n ${KUBE_NAMESPACE} patch svc blue-name-app-svc -p '{\"spec\":{\"selector\":{\"app\":\"blue-name-app\"}}}'"
+          sh "kubectl -n ${KUBE_NAMESPACE} get ep"
+          echo "ROLLOUT BLUE DONE!!!"
+        }
+      }
+    }
+
+
+    /*
     stage('Query MySQL') {
+      when {
+        expression { /*  根据需要放入逻辑  * / }
+      }
       steps {
         container('mysql-client') {
           withCredentials([usernamePassword(credentialsId: 'mysql-credentials-id', usernameVariable: 'MYSQL_USER', passwordVariable: 'MYSQL_PASS')]) {
@@ -155,5 +182,6 @@ spec:
         }
       }
     }
+    */
   }
 }
