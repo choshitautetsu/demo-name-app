@@ -68,7 +68,6 @@ spec:
       }
     }
 
-
     stage('Init MySQL') {
       when {
         expression { params.choices == 'deploy-mysql' }
