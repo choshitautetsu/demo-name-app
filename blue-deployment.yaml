@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: php-web
-          image: yourdockerhubid/php-web:latest # 构建并上传后替换这个镜像
+          image: iamsicher/nameapp:v1 # 构建并上传后替换这个镜像
           ports:
             - containerPort: 80
           env:
@@ -35,8 +35,8 @@ metadata:
 spec:
   selector:
     app: php-web
-  type: NodePort
+  type: LoadBalancer # 修改为 LoadBalancer
   ports:
-    - port: 80
-      targetPort: 80
-      nodePort: 30080
+    - port: 3333 # 集群内部访问端口
+      targetPort: 80 # Pod 监听端口
+      protocol: TCP
