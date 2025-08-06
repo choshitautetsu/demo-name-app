@@ -71,9 +71,9 @@ spec:
                                            usernameVariable: 'MYSQL_USER',
                                            passwordVariable: 'MYSQL_PASS')]) {
             // 连接集群内部MySQL服务，假设服务地址是 mysql-service.default.svc.cluster.local
-            sh '''
-                mysql -h mysql.name-app.svc.cluster.local -u$MYSQL_USER -p$MYSQL_PASS -D namedb -e "SELECT * FROM names;"
-            '''
+            // sh '''
+            //     mysql -h mysql.name-app.svc.cluster.local -u$MYSQL_USER -p$MYSQL_PASS -D namedb -e "SELECT * FROM names;"
+            // '''
           }
         }
       }
