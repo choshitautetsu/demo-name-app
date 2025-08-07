@@ -61,7 +61,7 @@ spec:
       steps {
         container('kubectl') {
           sh "kubectl -n ${KUBE_NAMESPACE} apply -f mysql.yaml"
-          // 等待 MySQL Pod Ready（假设标签是 app=mysql）
+          // 等待 MySQL Pod Ready
           sh "kubectl -n ${KUBE_NAMESPACE} wait --for=condition=ready pod -l app=mysql --timeout=120s"
           echo "DEPLOY MYSQL DONE AND POD READY!!!"
         }
@@ -70,7 +70,7 @@ spec:
 
     stage('Init MySQL') {
       when {
-        expression { params.choices == 'deploy-mysql' }
+        expression { params.choices == 'deploy-blue' }
       }
       steps {
         container('mysql-client') {
